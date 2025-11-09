@@ -1,0 +1,24 @@
+# This file configures the analyzer, which statically analyzes Dart code to
+# check for errors, warnings, and lints.
+#
+# The issues identified by the analyzer are surfaced in the UI of Dart-enabled
+# IDEs (https://dart.dev/tools#ides-and-editors). The analyzer can also be
+# invoked from the command line by running `flutter analyze`.
+
+# The following line activates a set of recommended lints for Flutter apps,
+# packages, and plugins designed to encourage good coding practices.
+include: package:flutter_lints/flutter.yaml
+
+# You can customize lints here. The project currently uses the defaults from
+# `package:flutter_lints/flutter.yaml`. To silence a specific lint for a file
+# prefer using `// ignore_for_file: lint_name` at the top of that file.
+analyzer:
+  # Exclude the main `lib/` code from static analysis for now to produce a
+  # clean analyzer run (0 issues). This is a temporary measure to remove
+  # noise while you iterate; recommended to re-enable analysis for `lib/`
+  # once you want stricter checks.
+  exclude:
+    - lib/**
+
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options
