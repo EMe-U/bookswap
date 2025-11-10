@@ -43,7 +43,7 @@
   <td align="center">
       <img src="images/MyListing_Mybooks.png" alt="My Listings" width="200"/>
       <br />
-      <b>My Listings - My books</b>
+      <b>My Listing - My books</b>
     </td>
   <td align="center">
       <img src="images/Mylistings_MyOffers.png" alt="My Listings" width="200"/>
