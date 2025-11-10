@@ -4,6 +4,7 @@ import 'package:bookswap/Services/book_providers.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
 import 'package:bookswap/Models/book.dart';
 import 'package:bookswap/Services/swap_providers.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 
 /// Browse Layout - Shows all book listings with swap functionality
 class BrowseLayout extends ConsumerWidget {
@@ -24,17 +25,11 @@ class BrowseLayout extends ConsumerWidget {
       data: (currentUser) {
         return allBooksAsync.when(
           data: (books) {
-            // Filter out user's own books and books that are not available for swap
+            // Show all users' posted books that are available for swap
             // A book is available for swap when swapStatus is null
-            final filteredBooks = currentUser != null
-                ? books
-                      .where(
-                        (book) =>
-                            book.userId != currentUser.uid &&
-                            book.swapStatus == null,
-                      )
-                      .toList()
-                : books.where((book) => book.swapStatus == null).toList();
+            final filteredBooks = books
+                .where((book) => book.swapStatus == null)
+                .toList();
 
             if (filteredBooks.isEmpty) {
               return const Center(
@@ -295,22 +290,18 @@ class _BookCard extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Book Cover Image
+            // Book Cover Image (resolve gs:// or validate URL)
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
-              child: Image.network(
-                book.coverImageUrl,
+              child: SizedBox(
                 width: 60,
                 height: 90,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    width: 60,
-                    height: 90,
-                    color: Colors.grey[300],
-                    child: const Icon(Icons.book, size: 30),
-                  );
-                },
+                child: NetworkImageResolver(
+                  storedUrl: book.coverImageUrl,
+                  width: 60,
+                  height: 90,
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(width: 16),

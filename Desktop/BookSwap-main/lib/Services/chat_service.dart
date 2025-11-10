@@ -1,7 +1,5 @@
-import 'package:bookswap/stubs/cloud_firestore_stubs.dart'
-    if (dart.library.io) 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:bookswap/Firebase/firebase_mobile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bookswap/Models/chat.dart';
 import 'package:bookswap/Models/message.dart' as msg;
@@ -217,18 +215,46 @@ class ChatService {
 
   /// READ: Get all chats for a user
   Stream<List<Chat>> getUserChats(String userId) {
-    try {
-      return _firestore
-          .collection(_chatsCollection)
-          .where('participants', arrayContains: userId)
-          .orderBy('updatedAt', descending: true)
-          .snapshots()
-          .map((snapshot) {
+    // Similar to books: some compound queries require a composite index.
+    // Try the ordered query first and fallback to an unordered query
+    // (sorted client-side) if Firestore reports a 'failed-precondition'.
+    return (() async* {
+      try {
+        await for (final snapshot
+            in _firestore
+                .collection(_chatsCollection)
+                .where('participants', arrayContains: userId)
+                .orderBy('updatedAt', descending: true)
+                .snapshots()) {
+          final chats = snapshot.docs
+              .map((doc) => Chat.fromFirestore(doc))
+              .toList();
+
+          // Enrich chats with swap info in background (don't block)
+          for (final chat in chats) {
+            if (chat.swapId != null) {
+              _enrichChatWithSwapInfo(chat).catchError((e) {
+                debugPrint('Failed to enrich chat: $e');
+              });
+            }
+          }
+
+          yield chats;
+        }
+      } on FirebaseException catch (e) {
+        if (e.code == 'failed-precondition' ||
+            e.message?.toLowerCase().contains('index') == true) {
+          debugPrint('Firestore index required for getUserChats: ${e.message}');
+          await for (final snapshot
+              in _firestore
+                  .collection(_chatsCollection)
+                  .where('participants', arrayContains: userId)
+                  .snapshots()) {
             final chats = snapshot.docs
                 .map((doc) => Chat.fromFirestore(doc))
                 .toList();
-
-            // Enrich chats with swap info in background (don't block)
+            chats.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+            // Enrich as well
             for (final chat in chats) {
               if (chat.swapId != null) {
                 _enrichChatWithSwapInfo(chat).catchError((e) {
@@ -236,12 +262,15 @@ class ChatService {
                 });
               }
             }
-
-            return chats;
-          });
-    } catch (e) {
-      throw 'Failed to fetch chats: $e';
-    }
+            yield chats;
+          }
+        } else {
+          rethrow;
+        }
+      } catch (e) {
+        rethrow;
+      }
+    })();
   }
 
   /// READ: Get a single chat by ID

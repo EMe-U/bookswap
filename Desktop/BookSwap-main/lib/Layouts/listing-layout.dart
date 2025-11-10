@@ -4,6 +4,7 @@ import 'package:bookswap/Services/book_providers.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
 import 'package:bookswap/Models/book.dart';
 import 'package:bookswap/routes/routes.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 
 /// My Listings Layout - Shows user's own book listings
 class ListingLayout extends ConsumerWidget {
@@ -12,11 +13,9 @@ class ListingLayout extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentUser = ref.watch(currentUserProvider);
-    
+
     if (currentUser == null) {
-      return const Center(
-        child: Text('Please log in to view your listings'),
-      );
+      return const Center(child: Text('Please log in to view your listings'));
     }
 
     final userBooksAsync = ref.watch(userBooksProvider(currentUser.uid));
@@ -56,9 +55,51 @@ class ListingLayout extends ConsumerWidget {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(
-        child: Text('Error: $error'),
-      ),
+      error: (error, stackTrace) {
+        final err = error.toString();
+        if (err.contains('index') ||
+            err.toUpperCase().contains('FAILED_PRECONDITION')) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.hourglass_empty,
+                    size: 60,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Indexes are required or building',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Firestore requires a composite index for this query. You can create it in the Firebase Console or retry once indexes are ready.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      // Retry the provider
+                      // We don't have direct access to ref here; developers can navigate away and back or restart.
+                      // For now, just pop and push to refresh the view if possible.
+                      try {
+                        Navigator.pop(context);
+                      } catch (_) {}
+                    },
+                    child: const Text('Back'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Center(child: Text('Error: $error'));
+      },
     );
   }
 }
@@ -73,7 +114,7 @@ class _BookCard extends ConsumerWidget {
     final now = DateTime.now();
     final difference = now.difference(date);
     final days = difference.inDays;
-    
+
     if (days == 0) {
       return 'Today';
     } else if (days == 1) {
@@ -101,22 +142,18 @@ class _BookCard extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Book Cover Image
+          // Book Cover Image (resolve gs:// or validate URL)
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: Image.network(
-              book.coverImageUrl,
+            child: SizedBox(
               width: 60,
               height: 90,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 60,
-                  height: 90,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.book, size: 30),
-                );
-              },
+              child: NetworkImageResolver(
+                storedUrl: book.coverImageUrl,
+                width: 60,
+                height: 90,
+                fit: BoxFit.cover,
+              ),
             ),
           ),
           const SizedBox(width: 16),
@@ -160,17 +197,17 @@ class _BookCard extends ConsumerWidget {
                     const SizedBox(width: 4),
                     Text(
                       _getDaysAgo(book.createdAt),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
                 ),
                 if (isSwapped) ...[
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green[50],
                       borderRadius: BorderRadius.circular(4),
@@ -179,7 +216,11 @@ class _BookCard extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.check_circle, color: Colors.green[700], size: 14),
+                        Icon(
+                          Icons.check_circle,
+                          color: Colors.green[700],
+                          size: 14,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           'Swapped',
@@ -208,7 +249,9 @@ class _BookCard extends ConsumerWidget {
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                            side: const BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                            side: const BorderSide(
+                              color: Color.fromARGB(255, 0, 0, 0),
+                            ),
                           ),
                           child: const Text(
                             'Edit',
@@ -225,14 +268,18 @@ class _BookCard extends ConsumerWidget {
                               context: context,
                               builder: (context) => AlertDialog(
                                 title: const Text('Delete Book'),
-                                content: const Text('Are you sure you want to delete this book listing?'),
+                                content: const Text(
+                                  'Are you sure you want to delete this book listing?',
+                                ),
                                 actions: [
                                   TextButton(
-                                    onPressed: () => Navigator.pop(context, false),
+                                    onPressed: () =>
+                                        Navigator.pop(context, false),
                                     child: const Text('Cancel'),
                                   ),
                                   ElevatedButton(
-                                    onPressed: () => Navigator.pop(context, true),
+                                    onPressed: () =>
+                                        Navigator.pop(context, true),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.red,
                                       foregroundColor: Colors.white,
@@ -249,7 +296,9 @@ class _BookCard extends ConsumerWidget {
                                 if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Book deleted successfully'),
+                                      content: Text(
+                                        'Book deleted successfully',
+                                      ),
                                       backgroundColor: Colors.green,
                                     ),
                                   );
@@ -287,6 +336,4 @@ class _BookCard extends ConsumerWidget {
       ),
     );
   }
-
 }
-

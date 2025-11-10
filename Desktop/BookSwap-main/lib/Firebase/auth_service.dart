@@ -1,5 +1,4 @@
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 // AuthService now uses the real firebase_auth package on platforms where
 // Firebase is enabled (mobile). This keeps the same method names so callers

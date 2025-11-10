@@ -30,7 +30,7 @@ android {
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
     // Minimum SDK required for some Firebase native dependencies.
-    minSdk = 23
+    minSdk = flutter.minSdkVersion
     // Target the same SDK as compile for consistency.
     targetSdk = 34
         versionCode = flutter.versionCode

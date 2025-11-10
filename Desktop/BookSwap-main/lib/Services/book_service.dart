@@ -1,18 +1,16 @@
-import 'package:bookswap/stubs/cloud_firestore_stubs.dart'
-    if (dart.library.io) 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:bookswap/Firebase/firebase_mobile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:typed_data';
 import 'package:bookswap/Models/book.dart';
 
 /// Service class for managing book listings (CRUD operations)
 class BookService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Initialize Storage with explicit bucket URL from config
-  // This ensures we're connecting to the correct bucket
-  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
-    bucket: 'bookswap-fec4c.firebasestorage.app',
-  );
+  // Use the default configured storage instance (from Firebase options)
+  // Avoid hardcoding a bucket name here — use the project's configured bucket
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // Collection name in Firestore
@@ -61,11 +59,21 @@ class BookService {
       );
 
       debugPrint(' Uploading file...');
-      // Upload the file with metadata
-      final UploadTask uploadTask = storageRef.putFile(
-        coverImageFile,
-        metadata,
-      );
+      // Upload the file with metadata. Support both File (mobile) and raw
+      // bytes (web). coverImageFile is dynamic.
+      late final UploadTask uploadTask;
+      if (coverImageFile is List<int> || coverImageFile is Uint8List) {
+        debugPrint(' Detected bytes upload (web/bytes)');
+        uploadTask = storageRef.putData(
+          coverImageFile is Uint8List
+              ? coverImageFile
+              : Uint8List.fromList(coverImageFile as List<int>),
+          metadata,
+        );
+      } else {
+        // Assume a File-like object on mobile
+        uploadTask = storageRef.putFile(coverImageFile, metadata);
+      }
 
       // Wait for upload to complete with progress tracking
       final TaskSnapshot snapshot = await uploadTask.whenComplete(() {
@@ -167,18 +175,46 @@ class BookService {
 
   /// READ: Get all books by a specific user
   Stream<List<Book>> getBooksByUser(String userId) {
-    try {
-      return _firestore
-          .collection(_collectionName)
-          .where('userId', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
-          .snapshots()
-          .map((snapshot) {
-            return snapshot.docs.map((doc) => Book.fromFirestore(doc)).toList();
-          });
-    } catch (e) {
-      throw 'Failed to fetch user books: $e';
-    }
+    // Some Firestore deployments require a composite index for queries that
+    // filter by one field and order by another. We'll attempt the ordered
+    // query first and fallback to an unordered query (sorted client-side)
+    // if Firestore returns a failed-precondition (index required) error.
+    return (() async* {
+      try {
+        await for (final snapshot
+            in _firestore
+                .collection(_collectionName)
+                .where('userId', isEqualTo: userId)
+                .orderBy('createdAt', descending: true)
+                .snapshots()) {
+          yield snapshot.docs.map((doc) => Book.fromFirestore(doc)).toList();
+        }
+      } on FirebaseException catch (e) {
+        // If an index is required, fall back to the simpler query and sort locally
+        if (e.code == 'failed-precondition' ||
+            e.message?.toLowerCase().contains('index') == true) {
+          debugPrint(
+            'Firestore index required for getBooksByUser: ${e.message}',
+          );
+          await for (final snapshot
+              in _firestore
+                  .collection(_collectionName)
+                  .where('userId', isEqualTo: userId)
+                  .snapshots()) {
+            final books = snapshot.docs
+                .map((doc) => Book.fromFirestore(doc))
+                .toList();
+            books.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+            yield books;
+          }
+        } else {
+          rethrow;
+        }
+      } catch (e) {
+        // Re-throw other unexpected errors so callers can handle them
+        rethrow;
+      }
+    })();
   }
 
   /// UPDATE: Edit an existing book listing

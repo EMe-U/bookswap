@@ -103,7 +103,6 @@
 ###  Real-time Chat
 - Instant messaging between users
 - Chat initiated after swap requests
-- Message notifications
 - Chat history persistence
 
 ###  User Interface
@@ -139,7 +138,6 @@
   - **Authentication**: Firebase Auth
   - **Database**: Cloud Firestore
   - **Storage**: Firebase Storage
-- **Notifications**: Local Notifications
 
 ### State Management
 
@@ -185,53 +183,58 @@ class MyWidget extends ConsumerWidget {
 ```
 
 ### Project Structure
-
 ```
-lib/
-├── Firebase/              # Firebase authentication and providers
-│   ├── auth_providers.dart    # Riverpod providers for auth state
-│   ├── auth_service.dart      # Authentication service
-│   └── auth_wrapper.dart      # Auth state wrapper (routes based on auth)
-│
-├── Models/               # Data models
-│   ├── book.dart             # Book listing model
-│   ├── chat.dart             # Chat conversation model
-│   ├── message.dart          # Message model
-│   └── swap.dart             # Swap request model
-│
-├── Services/            # Business logic and data access
-│   ├── book_providers.dart    # Riverpod providers for books
-│   ├── book_service.dart       # Book CRUD operations
-│   ├── chat_providers.dart     # Riverpod providers for chats
-│   ├── chat_service.dart       # Chat operations
-│   ├── notification_service.dart # Local notifications
-│   ├── profile_providers.dart   # Riverpod providers for profiles
-│   ├── profile_service.dart    # Profile operations
-│   ├── swap_providers.dart     # Riverpod providers for swaps
-│   └── swap_service.dart       # Swap operations
-│
-├── Screens/             # Full-screen UI components
-│   ├── add_book.dart           # Add/Edit book screen
-│   ├── chat_detail.dart        # Chat conversation screen
-│   ├── email_verification.dart # Email verification screen
-│   ├── home.dart               # Main home screen with navigation
-│   ├── login.dart              # Login screen
-│   ├── my_offers.dart          # My swap offers screen
-│   └── signup.dart             # Signup screen
-│
-├── Layouts/             # Reusable layout components
-│   ├── bottom-navigation.dart  # Bottom navigation bar
-│   ├── browse-layout.dart       # Browse books layout
-│   ├── chat-layout.dart         # Chat list layout
-│   ├── listing-layout.dart      # My listings layout
-│   ├── settings-layout.dart     # Settings layout
-│   └── top-navigation.dart     # Top app bar
-│
-├── Widgets/             # Reusable widgets
-│   └── notification_listener_widget.dart # Notification listener
-│
-└── routes/              # Navigation routing
-    └── routes.dart          # Route definitions and generator
+/
+├── android/                # Android platform project
+├── ios/                    # iOS platform project
+├── linux/                  # Linux platform project
+├── macos/                  # macOS platform project
+├── web/                    # Web build assets
+├── windows/                # Windows platform project
+├── assets/                 # App assets (fonts, misc)
+├── images/                 # README / docs screenshots
+├── lib/                    # Application source
+│   ├── main.dart
+│   ├── Firebase/              # Firebase auth and initialization
+│   │   ├── auth_providers.dart
+│   │   ├── auth_service.dart
+│   │   └── auth_wrapper.dart
+│   ├── Models/               # Data models
+│   │   ├── book.dart
+│   │   ├── chat.dart
+│   │   ├── message.dart
+│   │   └── swap.dart
+│   ├── Services/            # Business logic and data access
+│   │   ├── book_providers.dart
+│   │   ├── book_service.dart
+│   │   ├── chat_providers.dart
+│   │   ├── chat_service.dart
+│   │   ├── notification_service.dart
+│   │   ├── profile_providers.dart
+│   │   ├── profile_service.dart
+│   │   ├── swap_providers.dart
+│   │   └── swap_service.dart
+│   ├── Screens/             # Full-screen UI components
+│   │   ├── add_book.dart
+│   │   ├── chat_detail.dart
+│   │   ├── email_verification.dart
+│   │   ├── home.dart
+│   │   ├── login.dart
+│   │   ├── my_offers.dart
+│   │   └── signup.dart
+│   ├── Layouts/             # Reusable layout components
+│   │   ├── bottom-navigation.dart
+│   │   ├── browse-layout.dart
+│   │   ├── chat-layout.dart
+│   │   ├── listing-layout.dart
+│   │   ├── settings-layout.dart
+│   │   └── top-navigation.dart
+│   ├── Widgets/             # Reusable widgets
+│   │   ├── notification_listener_widget.dart
+│   │   └── network_image_resolver.dart  # Resolves gs:// and validates image URLs
+│   └── routes/
+│       └── routes.dart
+└── pubspec.yaml
 ```
 
 ### Architecture Diagram

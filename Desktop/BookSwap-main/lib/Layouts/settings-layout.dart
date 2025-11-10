@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
+import 'package:bookswap/utils/url_utils.dart';
 import 'package:bookswap/Services/profile_providers.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 import 'package:bookswap/Services/book_providers.dart';
 import 'package:bookswap/Services/swap_providers.dart';
 import 'package:bookswap/Services/chat_providers.dart';
@@ -93,32 +95,37 @@ class SettingsLayout extends ConsumerWidget {
             children: [
               Stack(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color.fromARGB(255, 250, 174, 22),
-                    backgroundImage:
-                        currentUser.photoURL != null &&
-                            currentUser.photoURL!.isNotEmpty
-                        ? NetworkImage(currentUser.photoURL!)
-                        : null,
-                    child:
-                        currentUser.photoURL == null ||
-                            currentUser.photoURL!.isEmpty
-                        ? Text(
-                            currentUser.displayName
-                                    ?.substring(0, 1)
-                                    .toUpperCase() ??
-                                currentUser.email
-                                    ?.substring(0, 1)
-                                    .toUpperCase() ??
-                                'U',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                  ClipOval(
+                    child: SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: currentUser.photoURL != null
+                          ? NetworkImageResolver(
+                              storedUrl: currentUser.photoURL,
+                              width: 100,
+                              height: 100,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              color: const Color.fromARGB(255, 250, 174, 22),
+                              child: Center(
+                                child: Text(
+                                  currentUser.displayName
+                                          ?.substring(0, 1)
+                                          .toUpperCase() ??
+                                      currentUser.email
+                                          ?.substring(0, 1)
+                                          .toUpperCase() ??
+                                      'U',
+                                  style: const TextStyle(
+                                    fontSize: 32,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
-                          )
-                        : null,
+                    ),
                   ),
                   Positioned(
                     bottom: 0,

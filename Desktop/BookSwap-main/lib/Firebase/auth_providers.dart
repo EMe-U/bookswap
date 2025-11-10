@@ -18,8 +18,7 @@
 //
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:bookswap/Firebase/auth_service.dart';
 
 // Provider for AuthService instance (singleton)

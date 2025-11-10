@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bookswap/Services/chat_providers.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
+import 'package:bookswap/utils/url_utils.dart';
 import 'package:bookswap/Models/chat.dart';
 
 /// Chat Detail Screen - Shows individual chat conversation
 class ChatDetailScreen extends ConsumerStatefulWidget {
   final Chat chat;
 
-  const ChatDetailScreen({
-    super.key,
-    required this.chat,
-  });
+  const ChatDetailScreen({super.key, required this.chat});
 
   @override
   ConsumerState<ChatDetailScreen> createState() => _ChatDetailScreenState();
@@ -55,10 +53,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     _messageController.clear();
 
     try {
-      await chatService.sendMessage(
-        chatId: widget.chat.id,
-        text: text,
-      );
+      await chatService.sendMessage(chatId: widget.chat.id, text: text);
       // Scroll to bottom after sending
       Future.delayed(const Duration(milliseconds: 100), _scrollToBottom);
     } catch (e) {
@@ -77,14 +72,24 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Widget build(BuildContext context) {
     final currentUser = ref.watch(currentUserProvider);
     final messagesAsync = ref.watch(chatMessagesProvider(widget.chat.id));
-    final otherParticipantId = widget.chat.getOtherParticipant(currentUser?.uid ?? '');
-    final otherParticipantName = widget.chat.getOtherParticipantName(currentUser?.uid ?? '');
-    final otherParticipantEmail = widget.chat.getOtherParticipantEmail(currentUser?.uid ?? '');
-    final otherParticipantPhotoURL = widget.chat.getOtherParticipantPhotoURL(currentUser?.uid ?? '');
-    
+    final otherParticipantId = widget.chat.getOtherParticipant(
+      currentUser?.uid ?? '',
+    );
+    final otherParticipantName = widget.chat.getOtherParticipantName(
+      currentUser?.uid ?? '',
+    );
+    final otherParticipantEmail = widget.chat.getOtherParticipantEmail(
+      currentUser?.uid ?? '',
+    );
+    final otherParticipantPhotoURL = widget.chat.getOtherParticipantPhotoURL(
+      currentUser?.uid ?? '',
+    );
+
     // Use name, then extract name from email, then email, then fallback to ID
     String displayName = otherParticipantName ?? 'Chat';
-    if (displayName == 'Chat' && otherParticipantEmail != null && otherParticipantEmail.isNotEmpty) {
+    if (displayName == 'Chat' &&
+        otherParticipantEmail != null &&
+        otherParticipantEmail.isNotEmpty) {
       // Extract name from email (part before @)
       final emailParts = otherParticipantEmail.split('@');
       if (emailParts.isNotEmpty && emailParts[0].isNotEmpty) {
@@ -95,25 +100,28 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     } else if (displayName == 'Chat') {
       displayName = otherParticipantEmail ?? otherParticipantId ?? 'Chat';
     }
-    
-    final initial = displayName.isNotEmpty 
-        ? displayName.substring(0, 1).toUpperCase() 
+
+    final initial = displayName.isNotEmpty
+        ? displayName.substring(0, 1).toUpperCase()
         : 'C';
 
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 239, 239, 239),
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 250, 174, 22)),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Color.fromARGB(255, 250, 174, 22),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-                displayName,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
+          displayName,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
-            ),
+          ),
         ),
         centerTitle: true,
         backgroundColor: const Color.fromARGB(255, 5, 22, 46),
@@ -156,11 +164,15 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                   itemBuilder: (context, index) {
                     final message = messages[index];
                     final isMe = message.senderId == currentUser?.uid;
-                    
+
                     // Check if we need to show a date separator
-                    final showDateSeparator = index == 0 || 
-                        _shouldShowDateSeparator(messages[index - 1].timestamp, message.timestamp);
-                    
+                    final showDateSeparator =
+                        index == 0 ||
+                        _shouldShowDateSeparator(
+                          messages[index - 1].timestamp,
+                          message.timestamp,
+                        );
+
                     return Column(
                       children: [
                         if (showDateSeparator)
@@ -176,17 +188,25 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                           ),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                          mainAxisAlignment: isMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
                           children: [
                             if (!isMe) ...[
                               // Profile picture for received messages
                               CircleAvatar(
                                 radius: 16,
-                                backgroundColor: const Color.fromARGB(255, 250, 174, 22),
-                                backgroundImage: otherParticipantPhotoURL != null && otherParticipantPhotoURL.isNotEmpty
-                                    ? NetworkImage(otherParticipantPhotoURL)
+                                backgroundColor: const Color.fromARGB(
+                                  255,
+                                  250,
+                                  174,
+                                  22,
+                                ),
+                                backgroundImage:
+                                    isValidHttpUrl(otherParticipantPhotoURL)
+                                    ? NetworkImage(otherParticipantPhotoURL!)
                                     : null,
-                                child: otherParticipantPhotoURL == null || otherParticipantPhotoURL.isEmpty
+                                child: !isValidHttpUrl(otherParticipantPhotoURL)
                                     ? Text(
                                         initial,
                                         style: const TextStyle(
@@ -201,44 +221,58 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                             ],
                             Flexible(
                               child: Column(
-                                crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                crossAxisAlignment: isMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
                                 children: [
                                   Container(
                                     margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isMe
-                              ? const Color.fromARGB(255, 250, 174, 22)
-                              : const Color.fromARGB(255, 5, 22, 46),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isMe
+                                          ? const Color.fromARGB(
+                                              255,
+                                              250,
+                                              174,
+                                              22,
+                                            )
+                                          : const Color.fromARGB(
+                                              255,
+                                              5,
+                                              22,
+                                              46,
+                                            ),
                                       borderRadius: BorderRadius.circular(8),
-                        ),
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width * 0.7,
-                        ),
+                                    ),
+                                    constraints: BoxConstraints(
+                                      maxWidth:
+                                          MediaQuery.of(context).size.width *
+                                          0.7,
+                                    ),
                                     child: Text(
-                              message.text,
+                                      message.text,
                                       style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                            ),
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.only(bottom: 12),
                                     child: Text(
-                              _formatTime(message.timestamp),
-                              style: TextStyle(
+                                      _formatTime(message.timestamp),
+                                      style: TextStyle(
                                         color: Colors.grey[600],
                                         fontSize: 11,
                                       ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                      ),
                             if (isMe) const SizedBox(width: 8),
                           ],
                         ),
@@ -248,17 +282,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
                 );
               },
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => Center(
-                child: Text('Error: $error'),
-              ),
+              error: (error, stackTrace) =>
+                  Center(child: Text('Error: $error')),
             ),
           ),
           // Message Input
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-            ),
+            decoration: const BoxDecoration(color: Colors.white),
             child: Row(
               children: [
                 Expanded(
@@ -312,8 +343,18 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   String _formatDate(DateTime dateTime) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${months[dateTime.month - 1]} ${dateTime.day}';
   }
@@ -332,4 +373,3 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         previousDate.day != currentDate.day;
   }
 }
-

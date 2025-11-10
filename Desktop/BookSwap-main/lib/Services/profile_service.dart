@@ -1,17 +1,16 @@
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:bookswap/Firebase/firebase_mobile.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'dart:typed_data';
 
 /// Service for managing user profile pictures
 class ProfileService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
-    bucket: 'bookswap-fec4c.firebasestorage.app',
-  );
+  // Use default storage instance configured by Firebase options
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
   /// Upload profile picture
-  Future<String> uploadProfilePicture(File imageFile) async {
+  Future<String> uploadProfilePicture(dynamic imageFile) async {
     final User? user = _auth.currentUser;
     if (user == null) {
       throw 'You must be logged in to upload a profile picture';
@@ -37,7 +36,21 @@ class ProfileService {
       );
 
       debugPrint('Uploading profile picture...');
-      final UploadTask uploadTask = storageRef.putFile(imageFile, metadata);
+
+      // Support both bytes (web) and File (mobile)
+      late final UploadTask uploadTask;
+      if (imageFile is Uint8List || imageFile is List<int>) {
+        uploadTask = storageRef.putData(
+          imageFile is Uint8List
+              ? imageFile
+              : Uint8List.fromList(imageFile as List<int>),
+          metadata,
+        );
+      } else {
+        // Assume a File-like object on mobile
+        uploadTask = storageRef.putFile(imageFile, metadata);
+      }
+
       await uploadTask;
       debugPrint('Profile picture uploaded successfully');
 

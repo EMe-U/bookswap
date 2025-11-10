@@ -1,7 +1,5 @@
-import 'package:bookswap/stubs/cloud_firestore_stubs.dart'
-    if (dart.library.io) 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:bookswap/Firebase/firebase_mobile.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:bookswap/Models/swap.dart';
 import 'package:bookswap/Models/book.dart';

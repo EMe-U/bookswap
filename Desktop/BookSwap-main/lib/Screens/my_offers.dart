@@ -5,7 +5,10 @@ import 'package:bookswap/Services/chat_providers.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
 import 'package:bookswap/Models/swap.dart';
 import 'package:bookswap/Services/book_providers.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:bookswap/Screens/chat_detail.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 
 /// My Offers Screen - Shows swap offers (both sent and received)
 class MyOffersScreen extends ConsumerStatefulWidget {
@@ -25,99 +28,127 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
     return currentUserAsync.when(
       data: (currentUser) {
         if (currentUser == null) {
-          return const Center(
-            child: Text('Please log in to view your offers'),
-          );
+          return const Center(child: Text('Please log in to view your offers'));
         }
 
-    return Container(
-      color: const Color.fromARGB(255, 248, 248, 248),
-      child: Column(
-        children: [
-          // Segmented Control for Sent/Received
-          Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedSegment = 0;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _selectedSegment == 0
-                            ? const Color.fromARGB(255, 250, 174, 22)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Sent',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: _selectedSegment == 0
-                              ? Colors.white
-                              : Colors.grey[700],
-                        ),
-                      ),
-                    ),
-                  ),
+        return Container(
+          color: const Color.fromARGB(255, 248, 248, 248),
+          child: Column(
+            children: [
+              // Segmented Control for Sent/Received
+              Container(
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedSegment = 1;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: _selectedSegment == 1
-                            ? const Color.fromARGB(255, 250, 174, 22)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'Received',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: _selectedSegment == 1
-                              ? Colors.white
-                              : Colors.grey[700],
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedSegment = 0;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _selectedSegment == 0
+                                ? const Color.fromARGB(255, 250, 174, 22)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Sent',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _selectedSegment == 0
+                                  ? Colors.white
+                                  : Colors.grey[700],
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedSegment = 1;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: _selectedSegment == 1
+                                ? const Color.fromARGB(255, 250, 174, 22)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Received',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _selectedSegment == 1
+                                  ? Colors.white
+                                  : Colors.grey[700],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Content based on selected segment
+              Expanded(
+                child: _selectedSegment == 0
+                    ? _SentOffersTab(userId: currentUser.uid)
+                    : _ReceivedOffersTab(userId: currentUser.uid),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) {
+        // Generic error for the top-level user loader. Allow retrying auth/user stream.
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 60, color: Colors.red),
+                const SizedBox(height: 16),
+                const Text(
+                  'Error loading user',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Retry the user stream
+                    ref.invalidate(currentUserStreamProvider);
+                  },
+                  child: const Text('Retry'),
                 ),
               ],
             ),
           ),
-        // Content based on selected segment
-        Expanded(
-          child: _selectedSegment == 0
-              ? _SentOffersTab(userId: currentUser.uid)
-              : _ReceivedOffersTab(userId: currentUser.uid),
-        ),
-        ],
-      ),
-    );
+        );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) => Center(
-        child: Text('Error: $error'),
-      ),
     );
   }
 }
@@ -168,8 +199,14 @@ class _SentOffersTab extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) {
-        String errorMessage = error.toString();
-        if (errorMessage.contains('index') || errorMessage.contains('FAILED_PRECONDITION')) {
+        final errorText = error.toString();
+        final urlMatch = RegExp(
+          r'https?:\/\/console\.firebase\.google\.com\S+',
+        ).firstMatch(errorText);
+        final indexUrl = urlMatch?.group(0);
+
+        if (errorText.contains('index') ||
+            errorText.toUpperCase().contains('FAILED_PRECONDITION')) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -184,10 +221,7 @@ class _SentOffersTab extends ConsumerWidget {
                   const SizedBox(height: 16),
                   const Text(
                     'Indexes are building...',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -195,7 +229,55 @@ class _SentOffersTab extends ConsumerWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  if (indexUrl != null) ...[
+                    SelectableText(indexUrl, textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: indexUrl),
+                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Index URL copied to clipboard',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Copy Index URL'),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final uri = Uri.parse(indexUrl);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not open URL'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Open in Console'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   ElevatedButton(
                     onPressed: () {
                       ref.invalidate(myOffersProvider(userId));
@@ -207,6 +289,7 @@ class _SentOffersTab extends ConsumerWidget {
             ),
           );
         }
+
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -287,8 +370,14 @@ class _ReceivedOffersTab extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) {
-        String errorMessage = error.toString();
-        if (errorMessage.contains('index') || errorMessage.contains('FAILED_PRECONDITION')) {
+        final errorText = error.toString();
+        final urlMatch = RegExp(
+          r'https?:\/\/console\.firebase\.google\.com\S+',
+        ).firstMatch(errorText);
+        final indexUrl = urlMatch?.group(0);
+
+        if (errorText.contains('index') ||
+            errorText.toUpperCase().contains('FAILED_PRECONDITION')) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -303,10 +392,7 @@ class _ReceivedOffersTab extends ConsumerWidget {
                   const SizedBox(height: 16),
                   const Text(
                     'Indexes are building...',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -314,7 +400,55 @@ class _ReceivedOffersTab extends ConsumerWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  if (indexUrl != null) ...[
+                    SelectableText(indexUrl, textAlign: TextAlign.center),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(text: indexUrl),
+                            );
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Index URL copied to clipboard',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          child: const Text('Copy Index URL'),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final uri = Uri.parse(indexUrl);
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(
+                                uri,
+                                mode: LaunchMode.externalApplication,
+                              );
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Could not open URL'),
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          child: const Text('Open in Console'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                  ],
                   ElevatedButton(
                     onPressed: () {
                       ref.invalidate(receivedOffersProvider(userId));
@@ -326,6 +460,7 @@ class _ReceivedOffersTab extends ConsumerWidget {
             ),
           );
         }
+
         return Center(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
@@ -365,10 +500,7 @@ class _SwapCard extends ConsumerWidget {
   final Swap swap;
   final bool isReceived;
 
-  const _SwapCard({
-    required this.swap,
-    required this.isReceived,
-  });
+  const _SwapCard({required this.swap, required this.isReceived});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -379,9 +511,7 @@ class _SwapCard extends ConsumerWidget {
       data: (book) => Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -390,22 +520,18 @@ class _SwapCard extends ConsumerWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Book Cover
+                  // Book Cover (resolve gs:// or validate URL)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      book.coverImageUrl,
+                    child: SizedBox(
                       width: 60,
                       height: 90,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 60,
-                          height: 90,
-                          color: Colors.grey[300],
-                          child: const Icon(Icons.book, size: 30),
-                        );
-                      },
+                      child: NetworkImageResolver(
+                        storedUrl: book.coverImageUrl,
+                        width: 60,
+                        height: 90,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -429,7 +555,10 @@ class _SwapCard extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: _getStatusColor(swap.status),
                             borderRadius: BorderRadius.circular(4),
@@ -538,10 +667,13 @@ class _SwapCard extends ConsumerWidget {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Cancel Swap'),
-                              content: const Text('Are you sure you want to cancel this swap request?'),
+                              content: const Text(
+                                'Are you sure you want to cancel this swap request?',
+                              ),
                               actions: [
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, false),
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
                                   child: const Text('No'),
                                 ),
                                 ElevatedButton(
@@ -592,10 +724,10 @@ class _SwapCard extends ConsumerWidget {
                         onPressed: () async {
                           final currentUser = ref.read(currentUserProvider);
                           if (currentUser == null) return;
-                          
+
                           try {
                             final chatService = ref.read(chatServiceProvider);
-                            
+
                             // Create or get existing chat with the book owner
                             final chat = await chatService.createChat(
                               userId1: currentUser.uid,
@@ -605,12 +737,13 @@ class _SwapCard extends ConsumerWidget {
                               user1Name: currentUser.displayName,
                               user1PhotoURL: currentUser.photoURL,
                             );
-                            
+
                             if (context.mounted) {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => ChatDetailScreen(chat: chat),
+                                  builder: (context) =>
+                                      ChatDetailScreen(chat: chat),
                                 ),
                               );
                             }
@@ -629,7 +762,9 @@ class _SwapCard extends ConsumerWidget {
                         label: const Text('Message Owner'),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color.fromARGB(255, 0, 0, 0),
-                          side: const BorderSide(color: Color.fromARGB(255, 0, 0, 0)),
+                          side: const BorderSide(
+                            color: Color.fromARGB(255, 0, 0, 0),
+                          ),
                         ),
                       ),
                     ),
@@ -656,4 +791,3 @@ class _SwapCard extends ConsumerWidget {
     }
   }
 }
-

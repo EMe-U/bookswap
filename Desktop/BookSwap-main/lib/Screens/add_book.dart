@@ -8,6 +8,7 @@ import 'package:bookswap/Models/book.dart';
 import 'package:bookswap/Services/book_providers.dart';
 import 'package:bookswap/Layouts/bottom-navigation.dart';
 import 'package:bookswap/Screens/home.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 
 class AddBook extends ConsumerStatefulWidget {
   final Book? book; // If provided, we're in edit mode
@@ -377,33 +378,11 @@ class _AddBookState extends ConsumerState<AddBook> {
                                               width: double.infinity,
                                               height: double.infinity,
                                             )
-                                          : Image.network(
-                                              _existingImageUrl!,
-                                              fit: BoxFit.cover,
+                                          : NetworkImageResolver(
+                                              storedUrl: _existingImageUrl,
                                               width: double.infinity,
                                               height: double.infinity,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                    return const Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        Icon(
-                                                          Icons.broken_image,
-                                                          size: 60,
-                                                          color: Colors.grey,
-                                                        ),
-                                                        SizedBox(height: 10),
-                                                        Text(
-                                                          'Image not available',
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    );
-                                                  },
+                                              fit: BoxFit.cover,
                                             )),
                               ),
                       ),

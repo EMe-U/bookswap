@@ -1,28 +1,28 @@
 /// ============================================================================
 /// HOME SCREEN - MAIN APP INTERFACE
 /// ============================================================================
-/// 
+///
 /// This is the main screen of the app after login. It contains:
 /// - Bottom navigation bar (Browse, My Listings, Chats, Settings)
 /// - Tab-based screen switching using IndexedStack
 /// - Special handling for "My Listings" tab (uses TabBarView)
 /// - Floating action button on Browse tab (to add new book)
-/// 
+///
 /// NAVIGATION STRUCTURE:
 /// - Tab 0: Browse - Browse all book listings
 /// - Tab 1: My Listings - User's own books + received swap offers (has sub-tabs)
 /// - Tab 2: Chats - List of chat conversations
 /// - Tab 3: Settings - User profile and app settings
-/// 
+///
 /// STATE MANAGEMENT:
 /// - Uses Riverpod's selectedTabIndexProvider to track current tab
 /// - IndexedStack keeps all tabs in memory (faster switching, no rebuild)
-/// 
+///
 /// SPECIAL CASES:
 /// - Tab 1 (My Listings) uses DefaultTabController with TabBarView
 ///   instead of IndexedStack because it has sub-tabs (My Books / My Offers)
 /// - Tab 0 (Browse) shows FloatingActionButton to add new book
-/// 
+///
 /// ============================================================================
 
 import 'package:flutter/material.dart';
@@ -36,21 +36,23 @@ import 'package:bookswap/Layouts/settings-layout.dart';
 import 'package:bookswap/Screens/my_offers.dart';
 import 'package:bookswap/routes/routes.dart';
 import 'package:bookswap/Firebase/auth_providers.dart';
+import 'package:bookswap/utils/url_utils.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 import 'package:bookswap/Widgets/notification_listener_widget.dart';
 
 /// Riverpod provider for tracking the currently selected bottom navigation tab
-/// 
+///
 /// Values:
 /// - 0: Browse tab
 /// - 1: My Listings tab
 /// - 2: Chats tab
 /// - 3: Settings tab
-/// 
+///
 /// Updated when user taps bottom navigation items.
 final selectedTabIndexProvider = StateProvider<int>((ref) => 0);
 
 /// Main home screen widget
-/// 
+///
 /// Handles the main app interface with bottom navigation.
 /// Wraps all screens in NotificationListenerWidget to listen for new messages/swaps.
 class Home extends ConsumerWidget {
@@ -60,7 +62,7 @@ class Home extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch current selected tab index (0-3)
     final selectedIndex = ref.watch(selectedTabIndexProvider);
-    
+
     // Watch current user from Firebase Auth stream
     final userAsync = ref.watch(currentUserStreamProvider);
     final user = userAsync.value; // Get current value from stream
@@ -68,10 +70,10 @@ class Home extends ConsumerWidget {
     // List of screens corresponding to each bottom nav tab
     // IndexedStack keeps all screens in memory for fast switching
     final screens = [
-      const BrowseScreen(),      // Tab 0: Browse all books
-      const MyListingsScreen(),  // Tab 1: User's own books (special case - see below)
-      const ChatsScreen(),       // Tab 2: Chat conversations
-      const SettingsScreen(),    // Tab 3: User settings
+      const BrowseScreen(), // Tab 0: Browse all books
+      const MyListingsScreen(), // Tab 1: User's own books (special case - see below)
+      const ChatsScreen(), // Tab 2: Chat conversations
+      const SettingsScreen(), // Tab 3: User settings
     ];
 
     // SPECIAL CASE: My Listings tab (index 1) uses TabBarView instead of IndexedStack
@@ -83,11 +85,21 @@ class Home extends ConsumerWidget {
           child: Scaffold(
             backgroundColor: const Color.fromARGB(255, 252, 252, 252),
             appBar: AppBar(
-              title: const Text('My Listings', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              title: const Text(
+                'My Listings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               centerTitle: true,
               leading: IconButton(
                 onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Color.fromARGB(255, 250, 174, 22)),
+                icon: const Icon(
+                  Icons.arrow_back,
+                  color: Color.fromARGB(255, 250, 174, 22),
+                ),
               ),
               backgroundColor: const Color.fromARGB(255, 5, 22, 46),
               foregroundColor: Colors.white,
@@ -103,12 +115,12 @@ class Home extends ConsumerWidget {
               ),
             ),
             body: const TabBarView(
-              children: [
-                ListingLayout(),
-                MyOffersScreen(),
-              ],
+              children: [ListingLayout(), MyOffersScreen()],
             ),
-            bottomNavigationBar: BottomNavigation(context, selectedIndex: selectedIndex),
+            bottomNavigationBar: BottomNavigation(
+              context,
+              selectedIndex: selectedIndex,
+            ),
             floatingActionButton: FloatingActionButton(
               onPressed: () {
                 Navigator.pushNamed(context, AppRoutes.addBook);
@@ -135,7 +147,14 @@ class Home extends ConsumerWidget {
         actionsPadding: EdgeInsets.all(10),
         backgroundColor: const Color.fromARGB(255, 5, 22, 46),
         titleTextStyle: TextStyle(color: Colors.white),
-        title: Text('Chat Section', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Chat Section',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         leading: IconButton(
           onPressed: () async {
@@ -150,7 +169,10 @@ class Home extends ConsumerWidget {
               );
             }
           },
-          icon: Icon(Icons.arrow_back, color: const Color.fromARGB(255, 250, 174, 22)),
+          icon: Icon(
+            Icons.arrow_back,
+            color: const Color.fromARGB(255, 250, 174, 22),
+          ),
         ),
         actions: [
           Container(
@@ -162,22 +184,23 @@ class Home extends ConsumerWidget {
               border: Border.all(color: Colors.white, width: 2),
             ),
             child: ClipOval(
-              child: (user?.photoURL != null && user!.photoURL!.isNotEmpty)
-                  ? Image(
-                      image: NetworkImage(user.photoURL!),
-                      width: double.infinity,
-                      height: double.infinity,
+              child: user?.photoURL != null
+                  ? NetworkImageResolver(
+                      storedUrl: user!.photoURL,
+                      width: 40,
+                      height: 40,
                       fit: BoxFit.cover,
                     )
                   : CircleAvatar(
                       radius: 18,
                       backgroundColor: const Color.fromARGB(255, 190, 190, 190),
                       child: Text(
-                        (user?.displayName != null && user!.displayName!.isNotEmpty)
+                        (user?.displayName != null &&
+                                user!.displayName!.isNotEmpty)
                             ? user.displayName!.substring(0, 1).toUpperCase()
                             : (user?.email != null && user!.email!.isNotEmpty)
-                                ? user.email!.substring(0, 1).toUpperCase()
-                                : '?',
+                            ? user.email!.substring(0, 1).toUpperCase()
+                            : '?',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -196,7 +219,14 @@ class Home extends ConsumerWidget {
         actionsPadding: EdgeInsets.all(10),
         backgroundColor: const Color.fromARGB(255, 5, 22, 46),
         titleTextStyle: TextStyle(color: Colors.white),
-        title: Text('Profile Settings', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Profile Settings',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
         leading: IconButton(
           onPressed: () async {
@@ -211,7 +241,10 @@ class Home extends ConsumerWidget {
               );
             }
           },
-          icon: Icon(Icons.arrow_back, color: const Color.fromARGB(255, 250, 174, 22)),
+          icon: Icon(
+            Icons.arrow_back,
+            color: const Color.fromARGB(255, 250, 174, 22),
+          ),
         ),
         actions: [
           Container(
@@ -223,22 +256,23 @@ class Home extends ConsumerWidget {
               border: Border.all(color: Colors.white, width: 2),
             ),
             child: ClipOval(
-              child: (user?.photoURL != null && user!.photoURL!.isNotEmpty)
-                  ? Image(
-                      image: NetworkImage(user.photoURL!),
-                      width: double.infinity,
-                      height: double.infinity,
+              child: user?.photoURL != null
+                  ? NetworkImageResolver(
+                      storedUrl: user!.photoURL,
+                      width: 40,
+                      height: 40,
                       fit: BoxFit.cover,
                     )
                   : CircleAvatar(
                       radius: 18,
                       backgroundColor: const Color.fromARGB(255, 190, 190, 190),
                       child: Text(
-                        (user?.displayName != null && user!.displayName!.isNotEmpty)
+                        (user?.displayName != null &&
+                                user!.displayName!.isNotEmpty)
                             ? user.displayName!.substring(0, 1).toUpperCase()
                             : (user?.email != null && user!.email!.isNotEmpty)
-                                ? user.email!.substring(0, 1).toUpperCase()
-                                : '?',
+                            ? user.email!.substring(0, 1).toUpperCase()
+                            : '?',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -264,27 +298,27 @@ class Home extends ConsumerWidget {
         appBar: appBar,
         // IndexedStack shows only the screen at selectedIndex
         // All screens stay in memory for instant switching
-        body: IndexedStack(
-          index: selectedIndex,
-          children: screens,
-        ),
+        body: IndexedStack(index: selectedIndex, children: screens),
         // Bottom navigation bar (Browse, My Listings, Chats, Settings)
-        bottomNavigationBar: BottomNavigation(context, selectedIndex: selectedIndex),
+        bottomNavigationBar: BottomNavigation(
+          context,
+          selectedIndex: selectedIndex,
+        ),
         // Floating action button only shown on Browse tab (to add new book)
         floatingActionButton: selectedIndex == 0
-              ? FloatingActionButton(
-                  onPressed: () {
-                    // Navigate to add book screen
-                    Navigator.pushNamed(context, AppRoutes.addBook);
-                  },
+            ? FloatingActionButton(
+                onPressed: () {
+                  // Navigate to add book screen
+                  Navigator.pushNamed(context, AppRoutes.addBook);
+                },
                 backgroundColor: const Color.fromARGB(255, 15, 23, 61),
-                  child: const Icon(
-                    Icons.add,
+                child: const Icon(
+                  Icons.add,
                   color: Color.fromARGB(255, 255, 255, 255),
-                    size: 30,
-                  ),
-                )
-              : null,
+                  size: 30,
+                ),
+              )
+            : null,
       ),
     );
   }

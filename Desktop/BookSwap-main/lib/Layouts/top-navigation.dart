@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bookswap/routes/routes.dart';
 import 'package:bookswap/Screens/home.dart';
-import 'package:bookswap/stubs/firebase_stubs.dart'
-    if (dart.library.io) 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:bookswap/utils/url_utils.dart';
+import 'package:bookswap/Widgets/network_image_resolver.dart';
 
 String _getUserInitial(User? user) {
   if (user == null) return '?';
@@ -69,11 +70,11 @@ AppBar topNavigation(BuildContext context, User? user, WidgetRef ref) {
             border: Border.all(color: Colors.white, width: 2),
           ),
           child: ClipOval(
-            child: (user?.photoURL != null && user!.photoURL!.isNotEmpty)
-                ? Image(
-                    image: NetworkImage(user.photoURL!),
-                    width: double.infinity,
-                    height: double.infinity,
+            child: user?.photoURL != null
+                ? NetworkImageResolver(
+                    storedUrl: user!.photoURL,
+                    width: 40,
+                    height: 40,
                     fit: BoxFit.cover,
                   )
                 : CircleAvatar(
